@@ -1,0 +1,884 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which Sea Creature Are You?</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0077b6; /* Deep Ocean Blue */
+            --secondary-color: #00b4d8; /* Light Sky Blue */
+            --plastic-color: #ff9f1c; /* Plastic Orange */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f8ff;
+            color: #1a202c;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Custom Styles for Game Elements */
+        #game-area {
+            position: relative;
+            background-color: #a0c4ff; /* Light Water */
+            border-radius: 1rem;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            /* touch-action: none; IMPORTANT for consistent mobile touch/drag */
+            touch-action: none;
+        }
+
+        .game-object {
+            position: absolute;
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.1s ease-out;
+        }
+
+        #player {
+            transition: transform 0.1s ease-out, width 0.3s, height 0.3s, left 0.05s linear, top 0.05s linear; /* Fast movement transition */
+            line-height: 1; /* Fix vertical alignment for emojis */
+            text-align: center;
+        }
+
+        .flip-animation {
+            animation: flip 0.6s ease-out forwards;
+        }
+
+        @keyframes flip {
+            0% { transform: scale(1) rotateY(0deg); }
+            50% { transform: scale(1.5) rotateY(180deg); }
+            100% { transform: scale(1) rotateY(360deg); }
+        }
+
+        .fish {
+            animation: swim 4s infinite alternate;
+        }
+
+        .plastic {
+            color: var(--plastic-color);
+            animation: drift 6s infinite alternate;
+        }
+
+        @keyframes swim {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(20px); }
+        }
+        @keyframes drift {
+            0% { transform: translate(0, 0) rotate(5deg); }
+            50% { transform: translate(10px, -10px) rotate(-10deg); }
+            100% { transform: translate(-5px, 5px) rotate(5deg); }
+        }
+        /* Style for the simple plastic bottle SVG */
+        .plastic-svg {
+            fill: #ADD8E6; /* Light Blue Bottle */
+            stroke: #1E90FF; /* Darker outline */
+            stroke-width: 0.5;
+            filter: drop-shadow(0 0 2px rgba(0,0,0,0.2));
+        }
+
+        /* Modal backdrop for facts */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+        }
+        .common{
+            position:absolute;
+        }
+        .navbar{
+            display: flex;
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            width: 400px;
+            float: right;
+            z-index: 1;
+            font-size: small;
+            background-color: #0077b6;
+        }
+        .navbar ul{
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            overflow: hidden;
+        }
+        .navbar a{
+            color: white;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 15px;
+            display: block;
+            text-align: center;
+        }
+        .navbar a:hover{
+            background-color: #285e8eb6;
+            color: white;
+            text-decoration: underline;
+        }
+        .navbar li{
+            float: left;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="common navbar">
+        <a href="index.html">HOME</a>  
+        <a href="resume.html">RESUME</a>  
+        <a href="hobbies.html">MARINE BIOLOGY</a>
+        <a href="webapp.html">GAME!</a> 
+    </div>    
+    <div id="app-container" class="bg-white rounded-xl shadow-2xl p-6 sm:p-10 w-full max-w-4xl">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6 text-gray-800">The Ocean Growth Quest</h1>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="space-y-6">
+            <h2 class="text-2xl text-center font-semibold text-primary-color mb-8">Discover Your Inner Sea Creature</h2>
+            
+            <div id="question-box" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <p id="question-text" class="text-xl font-medium mb-4"></p>
+                <div id="answer-buttons" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Buttons will be inserted here -->
+                </div>
+            </div>
+            <p class="text-center text-sm text-gray-500 mt-4">Question <span id="current-q-number">1</span> of 7</p>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="hidden text-center py-10">
+            <h2 class="text-3xl font-bold mb-4 text-secondary-color">Congratulations! You Are...</h2>
+            <div class="p-8 bg-blue-50 rounded-xl shadow-lg">
+                <p id="creature-emoji" class="text-8xl mb-4"></p>
+                <p id="creature-name" class="text-4xl font-extrabold text-primary-color mb-4"></p>
+                <p id="creature-description" class="text-lg text-gray-700 mb-8 max-w-lg mx-auto"></p>
+
+                <button id="start-game-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full transition duration-300 shadow-md transform hover:scale-105">
+                    Play as...
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game-screen" class="hidden flex flex-col items-center">
+            <div class="w-full mb-4 flex justify-between items-center text-lg font-medium p-3 bg-white rounded-lg shadow border border-gray-200">
+                <div class="text-gray-700">Level: <span id="game-level" class="font-bold text-primary-color">1</span> / 10</div>
+                <div class="text-gray-700">Fish Eaten: <span id="fish-eaten-count" class="font-bold text-green-600">0</span> / 3</div>
+            </div>
+            
+            <div id="game-container" class="w-full max-w-xl aspect-[4/3] bg-blue-100 rounded-lg shadow-xl border-4 border-primary-color">
+                <!-- Game area with dynamic sizing -->
+                <div id="game-area" class="w-full h-full">
+                    <!-- Player, Fish, and Plastic go here -->
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-3">Move your mouse or drag your finger over the water to control your creature.</p>
+
+            <!-- Game Over / Restart Button -->
+            <button id="restart-game-button" class="hidden mt-6 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-full transition duration-300 shadow-md transform hover:scale-105">
+                Start Over
+            </button>
+        </div>
+        
+    </div>
+
+    <!-- MODAL OVERLAY FOR FACTS AND WARNINGS -->
+    <div id="modal-overlay" class="hidden fixed inset-0 flex items-center justify-center p-4 modal-backdrop transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full transform transition-transform duration-300 scale-90">
+            <h3 id="modal-title" class="text-2xl font-bold mb-3"></h3>
+            <p id="modal-content" class="text-gray-700 mb-6"></p>
+            <button id="modal-close-button" class="w-full bg-primary-color hover:bg-secondary-color text-white font-bold py-2 rounded-lg transition duration-300">
+                Continue
+            </button>
+        </div>
+    </div>
+
+<script>
+    // --- GLOBAL CONFIGURATION AND DATA ---
+
+    const GAME_AREA_WIDTH = 600;
+    const GAME_AREA_HEIGHT = 450;
+    const MAX_LEVEL = 10;
+    const FISH_PER_LEVEL = 3;
+    const NUM_FISH = 5;
+    const NUM_PLASTIC = 3;
+    const PLAYER_SPEED = 8; // Movement speed for mouse follow
+    const INITIAL_PLAYER_SIZE = 30;
+    const SIZE_INCREMENT = 5;
+
+    let gameState = {
+        screen: 'quiz',
+        creatureType: null,
+        creatureName: null,
+        creatureEmoji: '❓',
+        level: 1,
+        fishEatenTotal: 0,
+        fishEatenLevel: 0,
+        playerSize: INITIAL_PLAYER_SIZE,
+        playerX: GAME_AREA_WIDTH / 2 - INITIAL_PLAYER_SIZE / 2,
+        playerY: GAME_AREA_HEIGHT / 2 - INITIAL_PLAYER_SIZE / 2,
+        targetX: GAME_AREA_WIDTH / 2 - INITIAL_PLAYER_SIZE / 2,
+        targetY: GAME_AREA_HEIGHT / 2 - INITIAL_PLAYER_SIZE / 2,
+        score: { mr: 0, gpo: 0, cf: 0, es: 0, so: 0, ws: 0, hw: 0 },
+        isGameOver: false,
+    };
+
+    const creatures = {
+        mr: { name: 'Manta Ray', emoji: '🪱', color: '#00c5c5', description: 'You are graceful and observant. You value freedom and wide-open spaces, gliding effortlessly through life\'s challenges.', facts: [] },
+        gpo: { name: 'Giant Pacific Octopus', emoji: '🐙', color: '#8a40a8', description: 'You are highly intelligent, curious, and a master of disguise. You can solve complex problems and adapt to any situation.', facts: [] },
+        cf: { name: 'Cuttlefish', emoji: '🦑', color: '#ff69b4', description: 'You are creative and have an incredible ability to change your perspective. You are sensitive to your environment and quick-witted.', facts: [] },
+        es: { name: 'Elephant Seal', emoji: '🦭', color: '#a0522d', description: 'You are resilient, tough, and capable of deep focus. You know how to conserve energy and pursue your goals relentlessly.', facts: [] },
+        so: { name: 'Sea Otter', emoji: '🦦', color: '#d2b48c', description: 'You are playful, social, and a bit of a foodie! You care deeply for your family and friends, always keeping things light.', facts: [] },
+        ws: { name: 'Whale Shark', emoji: '🦈', color: '#4682b4', description: 'You are gentle, calm, and massive in spirit. You appreciate the big picture and move through life without disturbing others.', facts: [] },
+        hw: { name: 'Humpback Whale', emoji: '🐋', color: '#1e3a8a', description: 'You are communicative, migratory, and majestic. You are a natural leader, known for your powerful voice and song.', facts: [] }
+    };
+
+    // Populating facts (10 facts per creature)
+    creatures.mr.facts = [
+        "Manta rays are the largest rays in the world, with wingspans of up to 23 feet!",
+        "They are filter feeders, using specialized gill rakers to strain zooplankton from the water.",
+        "Mantas are highly migratory and travel long distances in search of food.",
+        "They have the largest brain-to-body size ratio of any fish.",
+        "They perform 'cyclone feeding', swirling water to concentrate their food.",
+        "Each manta ray has a unique spot pattern on its belly, like a fingerprint.",
+        "Mantas are known to visit 'cleaning stations' where smaller fish eat parasites off their skin.",
+        "They are often seen leaping completely out of the water, a behavior called 'breaching'.",
+        "Manta rays cannot sting, unlike many other ray species.",
+        "They can live for over 40 years in the wild."
+    ];
+
+    creatures.gpo.facts = [
+        "The Giant Pacific Octopus is the largest octopus species by weight and length.",
+        "They have three hearts and blue blood (due to a copper-based protein).",
+        "GPOs are incredibly smart, known to open jars and solve mazes.",
+        "They can camouflage themselves perfectly by changing their skin color and texture in seconds.",
+        "An octopus can taste with its skin, specifically the suckers on its arms.",
+        "Female GPOs guard their eggs for months without eating, often dying afterward.",
+        "They use jet propulsion to move quickly through the water.",
+        "A GPO's arms can continue to react to stimuli even when detached from the body.",
+        "They have a beak, like a parrot's, which they use to crack open shells.",
+        "They are generally solitary animals, preferring to live alone in dens."
+    ];
+
+    creatures.cf.facts = [
+        "Cuttlefish are mollusks, related to octopuses and squid, but have an internal shell called a cuttlebone.",
+        "They can flash complex color patterns across their skin to communicate and hunt.",
+        "Cuttlefish have a W-shaped pupil that gives them a wide field of vision.",
+        "They are colorblind, yet they can produce the most vivid colors and patterns.",
+        "When threatened, they can spray dark ink (sepia) to confuse predators.",
+        "Cuttlefish use eight arms and two specialized tentacles to catch prey.",
+        "They are expert hypnotists, sometimes using rhythmic color pulses to mesmerize prey.",
+        "The largest cuttlefish species can grow to nearly 50 cm in length.",
+        "Their life span is relatively short, often only 1-2 years.",
+        "They use gas-filled chambers in their cuttlebone to control their buoyancy."
+    ];
+    
+    creatures.es.facts = [
+        "Male elephant seals can weigh up to 5,000 pounds and are the largest seal species.",
+        "They get their name from the large nose (proboscis) that males develop, used for loud roars.",
+        "Elephant seals are champion divers, holding breath for over an hour and diving thousands of feet deep.",
+        "They spend about 80% of their lives in the ocean, mainly diving for food.",
+        "During breeding season, males engage in fierce, bloody battles to establish dominance.",
+        "They haul out on land only twice a year: for breeding and for molting their skin.",
+        "Pups drink milk that is up to 55% fat, allowing them to gain weight very quickly.",
+        "They can travel thousands of miles during their foraging migrations.",
+        "Their metabolism slows down significantly during deep dives to conserve oxygen.",
+        "The northern elephant seal population has rebounded significantly after near extinction from hunting."
+    ];
+    
+    creatures.so.facts = [
+        "Sea otters are the smallest marine mammals but have the densest fur of any animal.",
+        "They often hold hands (or paws) while sleeping to prevent drifting away from each other.",
+        "They use rocks as tools to break open hard-shelled prey like clams and crabs.",
+        "Sea otters eat about 25% of their body weight every day to maintain their high metabolism.",
+        "They mostly float on their backs while eating, grooming, or resting.",
+        "Their presence in kelp forests is vital, as they eat sea urchins that would otherwise destroy the kelp.",
+        "A group of resting sea otters is called a 'raft'.",
+        "Sea otters often carry their young pups on their chests while swimming.",
+        "They are not naturally buoyant; they rely on air trapped in their dense fur for floatation.",
+        "The species was once hunted almost to extinction for its valuable fur."
+    ];
+
+    creatures.ws.facts = [
+        "The whale shark is the largest fish in the sea, reaching lengths of up to 60 feet.",
+        "Despite their name, they are gentle giants and pose no threat to humans.",
+        "They are filter feeders, using large mouths to scoop up plankton and small fish.",
+        "Whale sharks have a unique pattern of white spots and stripes on their skin, like a celestial map.",
+        "They are known to migrate thousands of miles across the oceans.",
+        "Scientists estimate they can live for over 100 years.",
+        "Their skin can be up to 10 centimeters (4 inches) thick.",
+        "A whale shark's mouth can be over 4 feet wide.",
+        "Unlike most sharks, they are ovoviviparous, meaning they hatch eggs internally and give birth to live young.",
+        "They have small, non-functional teeth; they use their gills to filter food."
+    ];
+    
+    creatures.hw.facts = [
+        "Humpback whales are famous for their complex and melodic songs, which can travel thousands of miles.",
+        "They perform spectacular breaches, leaping out of the water for reasons scientists still study.",
+        "Their scientific name, 'Megaptera novaeangliae', means 'big-winged New Englander'.",
+        "They use 'bubble-net feeding', where a group swims in a circle blowing bubbles to trap fish.",
+        "Each whale has a unique pattern of white markings on the underside of its tail flukes.",
+        "Humpbacks undertake some of the longest migrations of any mammal.",
+        "A humpback's flippers can grow up to 15 feet long.",
+        "Like other baleen whales, they have baleen plates instead of teeth to filter food.",
+        "Calves drink up to 100 gallons of their mother's fatty milk per day.",
+        "They are known to be curious and sometimes approach boats."
+    ];
+
+    const plasticFacts = [
+        "The plastic in the ocean can break down into 'microplastics,' which are easily mistaken for food by marine life.",
+        "Over 8 million tons of plastic leak into the ocean every year.",
+        "It can take a plastic bottle up to 450 years to decompose in the marine environment.",
+        "Plastic pollution can introduce toxic chemicals into the marine food web.",
+        "Plastic bags and balloons are often mistaken for jellyfish by sea turtles, which can be fatal."
+    ];
+
+    const quizQuestions = [
+        {
+            text: "When facing a new, difficult challenge, you are most likely to:",
+            answers: [
+                { text: "Take time to observe, then cleverly find a unique solution.", score: { gpo: 2, cf: 1 } },
+                { text: "Tackle it head-on with powerful, focused energy.", score: { es: 2, hw: 1 } },
+                { text: "Glide smoothly around it, looking for the path of least resistance.", score: { mr: 2, ws: 1 } },
+                { text: "Call your friends for a brainstorming session and a snack.", score: { so: 2 } }
+            ]
+        },
+        {
+            text: "Your ideal vacation involves:",
+            answers: [
+                { text: "Long, silent, deep dives into the unknown.", score: { ws: 2, es: 1 } },
+                { text: "Exploring vibrant, colorful reefs and changing outfits frequently.", score: { cf: 2, gpo: 1 } },
+                { text: "A relaxing float with loved ones, enjoying food and warmth.", score: { so: 2 } },
+                { text: "A major journey spanning continents, meeting new people along the way.", score: { hw: 2, mr: 1 } }
+            ]
+        },
+        {
+            text: "Which describes your social style?",
+            answers: [
+                { text: "Majestic, a bit of a singer, and definitely a leader.", score: { hw: 2 } },
+                { text: "Mostly solitary, preferring a quiet, cozy den.", score: { gpo: 2, es: 1 } },
+                { text: "Playful, tactile, and loves to socialize in small, close-knit groups.", score: { so: 2 } },
+                { text: "Gentle giant, welcoming to all, but rarely the center of attention.", score: { ws: 2, mr: 1 } }
+            ]
+        },
+        {
+            text: "Your defining personality trait is:",
+            answers: [
+                { text: "Exceptional Intelligence and Adaptability.", score: { gpo: 2, cf: 1 } },
+                { text: "Calmness and Massive Scale (in spirit).", score: { ws: 2, mr: 1 } },
+                { text: "Unbreakable Resilience and Endurance.", score: { es: 2, hw: 1 } },
+                { text: "Infectious Playfulness and Ingenuity.", score: { so: 2 } }
+            ]
+        },
+        {
+            text: "Your preferred method of problem-solving is:",
+            answers: [
+                { text: "Camouflage and stealth until the perfect moment to strike.", score: { gpo: 2, cf: 1 } },
+                { text: "Using sheer force and endurance to outlast the problem.", score: { es: 2 } },
+                { text: "Finding the most efficient, energy-saving route.", score: { mr: 2, ws: 1 } },
+                { text: "Singing about it until a solution comes to you.", score: { hw: 2 } }
+            ]
+        },
+        {
+            text: "Your favorite food group is:",
+            answers: [
+                { text: "Large quantities of tiny, delicious stuff (plankton/krill).", score: { ws: 2, hw: 2, mr: 2 } },
+                { text: "Crabs, clams, and other hard-to-open treats.", score: { so: 2, gpo: 1 } },
+                { text: "Fish, lots of fish, pursued with powerful agility.", score: { es: 2, cf: 1 } },
+                { text: "Anything I can change colors to match!", score: { cf: 2 } }
+            ]
+        },
+        {
+            text: "What makes you feel most secure?",
+            answers: [
+                { text: "Having the ability to travel freely and see the big picture.", score: { mr: 2, hw: 2 } },
+                { text: "My thick, insulating layer of protection.", score: { es: 2, so: 1 } },
+                { text: "My quick brain and ability to hide instantly.", score: { gpo: 2, cf: 1 } },
+                { text: "The knowledge that I am the biggest fish around.", score: { ws: 2 } }
+            ]
+        }
+    ];
+
+    // --- DOM REFERENCES ---
+    const elements = {
+        quizScreen: document.getElementById('quiz-screen'),
+        resultScreen: document.getElementById('result-screen'),
+        gameScreen: document.getElementById('game-screen'),
+        questionText: document.getElementById('question-text'),
+        answerButtons: document.getElementById('answer-buttons'),
+        currentQNumber: document.getElementById('current-q-number'),
+        creatureEmoji: document.getElementById('creature-emoji'),
+        creatureName: document.getElementById('creature-name'),
+        creatureDescription: document.getElementById('creature-description'),
+        startGameButton: document.getElementById('start-game-button'),
+        gameArea: document.getElementById('game-area'),
+        gameLevel: document.getElementById('game-level'),
+        fishEatenCount: document.getElementById('fish-eaten-count'),
+        restartGameButton: document.getElementById('restart-game-button'),
+        modalOverlay: document.getElementById('modal-overlay'),
+        modalTitle: document.getElementById('modal-title'),
+        modalContent: document.getElementById('modal-content'),
+        modalCloseButton: document.getElementById('modal-close-button'),
+    };
+
+    // --- UTILITY FUNCTIONS ---
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function showScreen(screenId) {
+        elements.quizScreen.classList.add('hidden');
+        elements.resultScreen.classList.add('hidden');
+        elements.gameScreen.classList.add('hidden');
+
+        if (screenId === 'quiz') elements.quizScreen.classList.remove('hidden');
+        if (screenId === 'result') elements.resultScreen.classList.remove('hidden');
+        if (screenId === 'game') elements.gameScreen.classList.remove('hidden');
+
+        gameState.screen = screenId;
+    }
+
+    function showModal(title, content, isPlastic = false) {
+        elements.modalTitle.textContent = title;
+        elements.modalContent.textContent = content;
+        
+        // Custom styling for plastic warning
+        if (isPlastic) {
+            elements.modalTitle.classList.remove('text-primary-color');
+            elements.modalTitle.classList.add('text-red-600');
+        } else {
+            elements.modalTitle.classList.add('text-primary-color');
+            elements.modalTitle.classList.remove('text-red-600');
+        }
+
+        elements.modalOverlay.classList.remove('hidden', 'opacity-0');
+        elements.modalOverlay.classList.add('opacity-100');
+        
+        // Scale the inner modal for transition effect
+        elements.modalOverlay.querySelector('div').classList.remove('scale-90');
+        elements.modalOverlay.querySelector('div').classList.add('scale-100');
+    }
+
+    function hideModal() {
+        elements.modalOverlay.classList.remove('opacity-100');
+        elements.modalOverlay.classList.add('opacity-0');
+        
+        // Scale the inner modal back
+        elements.modalOverlay.querySelector('div').classList.remove('scale-100');
+        elements.modalOverlay.querySelector('div').classList.add('scale-90');
+        
+        setTimeout(() => {
+            elements.modalOverlay.classList.add('hidden');
+        }, 300); // Wait for transition to finish
+    }
+
+    // --- QUIZ LOGIC ---
+
+    let currentQuestionIndex = 0;
+
+    function renderQuestion() {
+        if (currentQuestionIndex >= quizQuestions.length) {
+            showResult();
+            return;
+        }
+
+        const q = quizQuestions[currentQuestionIndex];
+        elements.questionText.textContent = q.text;
+        elements.currentQNumber.textContent = currentQuestionIndex + 1;
+        elements.answerButtons.innerHTML = '';
+
+        q.answers.forEach(answer => {
+            const button = document.createElement('button');
+            // Quiz button text color is black
+            button.className = 'bg-secondary-color hover:bg-primary-color text-black hover:text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 text-left';
+            button.textContent = answer.text;
+            button.onclick = () => handleAnswer(answer.score);
+            elements.answerButtons.appendChild(button);
+        });
+    }
+
+    function handleAnswer(score) {
+        // Accumulate scores
+        for (const type in score) {
+            if (gameState.score.hasOwnProperty(type)) {
+                gameState.score[type] += score[type];
+            }
+        }
+
+        currentQuestionIndex++;
+        renderQuestion();
+    }
+
+    function showResult() {
+        // Determine the winner
+        let winningCreature = null;
+        let maxScore = -1;
+
+        for (const type in gameState.score) {
+            if (gameState.score[type] > maxScore) {
+                maxScore = gameState.score[type];
+                winningCreature = type;
+            }
+        }
+
+        // If a tie, pick randomly from tied creatures (simple implementation)
+        const tiedCreatures = Object.keys(gameState.score).filter(type => gameState.score[type] === maxScore);
+        if (tiedCreatures.length > 1) {
+            winningCreature = tiedCreatures[getRandomInt(0, tiedCreatures.length - 1)];
+        }
+
+        const creatureData = creatures[winningCreature];
+        gameState.creatureType = winningCreature;
+        gameState.creatureName = creatureData.name;
+        gameState.creatureEmoji = creatureData.emoji;
+
+        elements.creatureEmoji.textContent = creatureData.emoji;
+        elements.creatureName.textContent = creatureData.name;
+        elements.creatureDescription.textContent = creatureData.description;
+        elements.startGameButton.textContent = `Play as the ${creatureData.name}`;
+
+        showScreen('result');
+    }
+
+    // --- GAME LOGIC ---
+
+    let gameObjects = [];
+    let playerElement = null;
+    let frameId = null; // for requestAnimationFrame
+
+    function createGameObject(type, emojiOrSvg, size, isMovable = true) {
+        const element = document.createElement('div');
+        element.className = `game-object text-center flex items-center justify-center`;
+        element.style.width = `${size}px`;
+        element.style.height = `${size}px`;
+        element.style.fontSize = `${size * 0.7}px`;
+        element.dataset.type = type;
+
+        if (type === 'plastic') {
+            element.innerHTML = emojiOrSvg; // SVG content
+        } else {
+            element.textContent = emojiOrSvg;
+        }
+
+        let obj = {
+            element: element,
+            type: type,
+            size: size,
+            x: getRandomInt(0, GAME_AREA_WIDTH - size),
+            y: getRandomInt(0, GAME_AREA_HEIGHT - size),
+        };
+
+        if (type !== 'player') {
+            obj.element.style.left = `${obj.x}px`;
+            obj.element.style.top = `${obj.y}px`;
+            // Add custom animation classes
+            if (type === 'fish') element.classList.add('fish');
+            if (type === 'plastic') element.classList.add('plastic');
+        }
+
+        return obj;
+    }
+
+    function resetGame() {
+        // Reset state
+        gameState.level = 1;
+        gameState.fishEatenTotal = 0;
+        gameState.fishEatenLevel = 0;
+        gameState.playerSize = INITIAL_PLAYER_SIZE;
+        gameState.isGameOver = false;
+        
+        elements.restartGameButton.classList.add('hidden');
+        
+        // Clear game area
+        elements.gameArea.innerHTML = '';
+        gameObjects = [];
+
+        // 1. Create Player
+        const creatureData = creatures[gameState.creatureType];
+        playerElement = document.createElement('div');
+        playerElement.id = 'player';
+        playerElement.className = 'game-object rounded-full shadow-lg border-2 border-white';
+        playerElement.style.backgroundColor = creatureData.color;
+        playerElement.style.color = '#fff';
+        playerElement.textContent = creatureData.emoji;
+        
+        elements.gameArea.appendChild(playerElement);
+        
+        // Initialize player position and size
+        gameState.playerX = GAME_AREA_WIDTH / 2 - gameState.playerSize / 2;
+        gameState.playerY = GAME_AREA_HEIGHT / 2 - gameState.playerSize / 2;
+        
+        // Set target to current position initially
+        gameState.targetX = gameState.playerX;
+        gameState.targetY = gameState.playerY;
+
+        updatePlayerElement();
+
+        // 2. Create game objects (Fish and Plastic)
+        for (let i = 0; i < NUM_FISH; i++) {
+            gameObjects.push(createGameObject('fish', '🐟', 20));
+        }
+        for (let i = 0; i < NUM_PLASTIC; i++) {
+            // Simple plastic bottle SVG (16x16)
+            const plasticSvg = `
+                <svg viewBox="0 0 16 16" class="plastic-svg w-full h-full">
+                    <path d="M6 1h4v15H6zM4 3h8v2H4zM7 16h2v-1H7z" fill-rule="evenodd"/>
+                </svg>`;
+            gameObjects.push(createGameObject('plastic', plasticSvg, 25));
+        }
+
+        gameObjects.forEach(obj => {
+            elements.gameArea.appendChild(obj.element);
+        });
+
+        // 3. Update UI
+        updateGameStats();
+        
+        // 4. Start loop
+        if (frameId) cancelAnimationFrame(frameId);
+        gameLoop();
+    }
+    
+    function updateGameStats() {
+        elements.gameLevel.textContent = gameState.level;
+        elements.fishEatenCount.textContent = `${gameState.fishEatenLevel} / ${FISH_PER_LEVEL}`;
+    }
+
+    function updatePlayerElement() {
+        if (!playerElement) return;
+
+        playerElement.style.width = `${gameState.playerSize}px`;
+        playerElement.style.height = `${gameState.playerSize}px`;
+        playerElement.style.fontSize = `${gameState.playerSize * 0.7}px`;
+        playerElement.style.left = `${gameState.playerX}px`;
+        playerElement.style.top = `${gameState.playerY}px`;
+    }
+
+    function checkCollision(objA, objB) {
+        // objA is the player, objB is the target object
+        const buffer = 5; // A small buffer to make collision easier
+        return (
+            objA.x < objB.x + objB.size - buffer &&
+            objA.x + objA.size - buffer > objB.x &&
+            objA.y < objB.y + objB.size - buffer &&
+            objA.y + objA.size - buffer > objB.y
+        );
+    }
+    
+    function getPlayerBoundingBox() {
+        return {
+            x: gameState.playerX,
+            y: gameState.playerY,
+            size: gameState.playerSize,
+        };
+    }
+
+    function relocateObject(obj) {
+        const margin = 10;
+        obj.x = getRandomInt(margin, GAME_AREA_WIDTH - obj.size - margin);
+        obj.y = getRandomInt(margin, GAME_AREA_HEIGHT - obj.size - margin);
+        obj.element.style.left = `${obj.x}px`;
+        obj.element.style.top = `${obj.y}px`;
+    }
+
+    function handleFishEaten() {
+        gameState.fishEatenTotal++;
+        gameState.fishEatenLevel++;
+        updateGameStats();
+
+        if (gameState.fishEatenLevel >= FISH_PER_LEVEL) {
+            levelUp();
+        }
+    }
+
+    function levelUp() {
+        gameState.level++;
+        gameState.fishEatenLevel = 0;
+        
+        // 1. Increase player size
+        gameState.playerSize += SIZE_INCREMENT;
+        
+        // 2. Center player (or adjust if out of bounds)
+        gameState.playerX = Math.max(0, Math.min(GAME_AREA_WIDTH - gameState.playerSize, gameState.playerX));
+        gameState.playerY = Math.max(0, Math.min(GAME_AREA_HEIGHT - gameState.playerSize, gameState.playerY));
+        updatePlayerElement();
+
+        // 3. Show fun fact
+        const creatureData = creatures[gameState.creatureType];
+        const factIndex = gameState.level - 2; // Facts are 0-indexed, level is 1-indexed (and we level up to 2, 3, etc.)
+        const fact = creatureData.facts[factIndex] || "An amazing fact about your creature!";
+        showModal(`Level Up! You are now Size ${gameState.level}!`, fact);
+        
+        updateGameStats();
+
+        // 4. Check for game end
+        if (gameState.level > MAX_LEVEL) {
+            endGame();
+        }
+    }
+
+    function handlePlasticEaten() {
+        // 1. Play flip animation
+        playerElement.classList.add('flip-animation');
+        setTimeout(() => {
+            playerElement.classList.remove('flip-animation');
+        }, 600);
+        
+        // 2. Show plastic pollution fact
+        const fact = plasticFacts[getRandomInt(0, plasticFacts.length - 1)];
+        showModal("Oh No! You ate plastic!", fact, true);
+    }
+    
+    function endGame() {
+        gameState.isGameOver = true;
+        
+        // Show final message
+        showModal(
+            `You are a magnificent Size ${MAX_LEVEL} ${gameState.creatureName}!`,
+            "You have reached maximum size and successfully navigated the ocean. Thank you for learning about your creature and ocean health!",
+            false
+        );
+        
+        // Show restart button
+        elements.restartGameButton.classList.remove('hidden');
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = null;
+    }
+
+    function updatePlayerMovement() {
+        const dx = gameState.targetX - gameState.playerX;
+        const dy = gameState.targetY - gameState.playerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 1) {
+            const ratio = Math.min(1, PLAYER_SPEED / distance);
+            
+            gameState.playerX += dx * ratio;
+            gameState.playerY += dy * ratio;
+            
+            // Clamp to boundaries
+            gameState.playerX = Math.max(0, Math.min(GAME_AREA_WIDTH - gameState.playerSize, gameState.playerX));
+            gameState.playerY = Math.max(0, Math.min(GAME_AREA_HEIGHT - gameState.playerSize, gameState.playerY));
+
+            updatePlayerElement();
+        }
+    }
+
+    function gameLoop() {
+        if (gameState.isGameOver) return;
+        
+        updatePlayerMovement();
+
+        const playerBox = getPlayerBoundingBox();
+        let objectsToRelocate = [];
+
+        // Check for collisions
+        gameObjects.forEach((obj, index) => {
+            if (checkCollision(playerBox, obj)) {
+                objectsToRelocate.push(obj);
+                
+                if (obj.type === 'fish') {
+                    handleFishEaten();
+                } else if (obj.type === 'plastic') {
+                    handlePlasticEaten();
+                }
+            }
+        });
+
+        // Relocate collected/eaten objects
+        objectsToRelocate.forEach(obj => relocateObject(obj));
+        
+        frameId = requestAnimationFrame(gameLoop);
+    }
+
+    // --- INPUT HANDLER (Mouse/Touch Follow) ---
+
+    function updateTargetPosition(clientX, clientY) {
+        if (gameState.screen !== 'game' || gameState.isGameOver) return;
+
+        const rect = elements.gameArea.getBoundingClientRect();
+        
+        // Calculate factor to scale coordinates to the fixed game area size
+        const scaleX = GAME_AREA_WIDTH / rect.width;
+        const scaleY = GAME_AREA_HEIGHT / rect.height;
+        
+        // Calculate position relative to the game area (scaled)
+        const mouseX = (clientX - rect.left) * scaleX;
+        const mouseY = (clientY - rect.top) * scaleY;
+        
+        // Set the target position (centered on the creature's body)
+        gameState.targetX = mouseX - gameState.playerSize / 2;
+        gameState.targetY = mouseY - gameState.playerSize / 2;
+        
+        // Clamp the target to boundaries
+        gameState.targetX = Math.max(0, Math.min(GAME_AREA_WIDTH - gameState.playerSize, gameState.targetX));
+        gameState.targetY = Math.max(0, Math.min(GAME_AREA_HEIGHT - gameState.playerSize, gameState.targetY));
+    }
+
+    // Mouse Events: Follow mouse position whenever it moves
+    function handleMouseMove(event) {
+        updateTargetPosition(event.clientX, event.clientY);
+    }
+    
+    // Touch Events for Mobile: Follow finger position whenever it moves
+    function handleTouchMove(event) {
+        // Prevent default scrolling/panning behavior while dragging the creature
+        event.preventDefault(); 
+        if (event.touches.length > 0) {
+            updateTargetPosition(event.touches[0].clientX, event.touches[0].clientY);
+        }
+    }
+    
+    // --- INITIALIZATION AND EVENT LISTENERS ---
+
+    window.onload = () => {
+        // Set fixed game area size for internal logic consistency
+        elements.gameArea.style.width = `${GAME_AREA_WIDTH}px`;
+        elements.gameArea.style.height = `${GAME_AREA_HEIGHT}px`;
+        
+        // Initialize Quiz
+        renderQuestion();
+        
+        // --- Event Listeners ---
+        
+        // Modal Close Button
+        elements.modalCloseButton.addEventListener('click', hideModal);
+
+        // Start Game Button
+        elements.startGameButton.addEventListener('click', () => {
+            showScreen('game');
+            resetGame();
+        });
+
+        // Restart Game Button
+        elements.restartGameButton.addEventListener('click', () => {
+            // Reset quiz scores and state for a fresh start
+            currentQuestionIndex = 0;
+            gameState.score = { mr: 0, gpo: 0, cf: 0, es: 0, so: 0, ws: 0, hw: 0 };
+            showScreen('quiz');
+            renderQuestion();
+        });
+
+        // Game Controls (Mouse/Touch Follow)
+        // Now it follows the cursor movement instantly without needing to click
+        elements.gameArea.addEventListener('mousemove', handleMouseMove);
+        
+        // For touch devices (same logic as before: touchmove follows finger position)
+        elements.gameArea.addEventListener('touchmove', handleTouchMove, { passive: false });
+        
+        // The touchstart/touchend handlers are no longer strictly needed for follow, 
+        // but touchmove must have passive: false for movement to feel responsive.
+    };
+
+</script>
+</body>
+</html>

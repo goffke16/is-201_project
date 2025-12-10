@@ -1,0 +1,28 @@
+body{
+    background-color: #e7f5fd;
+    color: black;
+}
+h3{
+    color: #707b82;
+}
+p{
+    font-style: italic;
+    font-size: smaller;
+    font-weight: lighter;
+    color: #707b82;
+    border-left: 4px solid #285e8e;
+    padding-left: 10px;
+}
+a:hover{
+    color: #285e8e;
+    text-decoration: underline;
+}
+strong{
+    color: #285e8e;
+}
+.pagelinks{
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #285e8e;
+}
